@@ -27,9 +27,26 @@ Success for Phase 1 means:
 - the arm is connected and controllable
 - the gripper is connected and controllable
 - the Intel RealSense D405 is connected and available in ROS 2
+- MoveIt can plan and execute on the real robot
 - a simple repeatable demo exists, such as joint motion
 
-Phase 1 is not yet focused on advanced learning workflows, full camera calibration pipelines, or large-scale application tasks.
+Phase 1 status:
+- the core Phase 1 target has been achieved
+- the real arm and gripper are operational
+- the D405 is operational in ROS 2 through the local wrapper launch
+- eye-in-hand calibration has been completed and verified
+- the saved hand-eye transform is published automatically in the real-robot launch path
+
+Phase 1 delivered baseline:
+- `alicia_d_moveit/launch/real_robot.launch.py` is the main real-hardware bring-up path
+- `alicia_d_moveit/launch/d405.launch.py` is the main D405 bring-up path
+- the planning scene uses user-defined collision boxes from `world_scene.yaml`
+- hand-guiding is available through `/demonstration` and the small toggle UI
+
+What is still considered refinement rather than unfinished bring-up:
+- small residual pose mismatch likely related to joint zero bias / calibration
+- perception/manipulation application logic built on top of the calibrated wrist camera
+- cleanup of non-blocking shutdown warnings/crashes from upstream MoveIt/RViz behavior
 
 ## Workspace Principles
 
@@ -77,6 +94,12 @@ Simulation should be used before real hardware when practical.
 
 However, real-hardware validation is the final authority for hardware-facing work. Work should not be treated as fully validated until it has been checked on the real system when appropriate.
 
+Current practical validation order:
+- simulation in `demo.launch.py` when changing planning/configuration behavior
+- standalone driver only when debugging low-level hardware behavior
+- `real_robot.launch.py` for operator-facing validation of the integrated system
+- D405 bring-up and hand-eye verification before camera-guided tasks
+
 ## Data and Recordkeeping Rules
 
 Datasets, recordings, raw observations, and logs are first-class project assets.
@@ -119,3 +142,9 @@ But they should:
 - preserve project readability
 - avoid destructive actions on preserved data without explicit confirmation
 - favor workflows that support future continuation by both humans and agents
+
+Current baseline assumptions for future work:
+- ROS 2 Humble on Ubuntu 22.04 remains the supported software base
+- the active manipulator baseline is the Alicia-D follower arm with the 50 mm gripper
+- the active wrist camera baseline is the Intel RealSense D405
+- the real-robot stack should assume the custom world scene and saved hand-eye calibration are part of the normal operating setup

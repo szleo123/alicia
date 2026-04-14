@@ -1,0 +1,25 @@
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE files (optional)
+.vscode/
+*.swp
+*~
+*.code-workspace
+test*
+
+# alicia_d_grasp_6d
+alicia_d_grasp_6d/Models/GraspGen/
+alicia_d_grasp_6d/Models/FoundationStereo/
+alicia_d_grasp_6d/Models/sam2/
+alicia_d_grasp_6d/scripts/orbbec_gemini_335/.bridge_data/
+alicia_d_grasp_6d/scripts/orbbec_gemini_335/outputs/
+alicia_d_grasp_6d/scripts/intel_rs_d405/.bridge_data/
+alicia_d_grasp_6d/scripts/intel_rs_d405/outputs/

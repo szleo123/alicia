@@ -24,6 +24,7 @@ import struct
 import json
 import numpy as np
 import cv2
+import tempfile
 
 import rclpy
 from rclpy.node import Node
@@ -212,7 +213,7 @@ class ROSBridge(Node):
         
         # === RGB Subscriber (D405 specific topic name) ===
         self.rgb_sub = self.create_subscription(
-            Image, '/camera/camera/color/image_rect_raw',
+            Image, '/camera/camera/color/image_raw',
             self._rgb_callback, sensor_qos)
         
         # === Publishers (for republishing processed data) ===
@@ -235,7 +236,7 @@ class ROSBridge(Node):
         self.get_logger().info("Subscriptions (D405):")
         self.get_logger().info("  - /camera/camera/infra1/image_rect_raw")
         self.get_logger().info("  - /camera/camera/infra2/image_rect_raw")
-        self.get_logger().info("  - /camera/camera/color/image_rect_raw")
+        self.get_logger().info("  - /camera/camera/color/image_raw")
         self.get_logger().info("  - /grasp_6d/regenerate")
         self.get_logger().info("Publishing:")
         self.get_logger().info("  - /grasp_6d/pointcloud")
@@ -397,15 +398,19 @@ class ROSBridge(Node):
     def _save_stereo_files(self, left: np.ndarray, right: np.ndarray, camera_info: dict):
         """Save stereo images to files."""
         try:
-            cv2.imwrite(os.path.join(self.bridge_dir, 'left.png'), left)
-            cv2.imwrite(os.path.join(self.bridge_dir, 'right.png'), right)
+            self._atomic_imwrite(os.path.join(self.bridge_dir, 'left.png'), left)
+            self._atomic_imwrite(os.path.join(self.bridge_dir, 'right.png'), right)
             
             if camera_info:
-                with open(os.path.join(self.bridge_dir, 'camera_info.json'), 'w') as f:
-                    json.dump(camera_info, f)
+                self._atomic_write_text(
+                    os.path.join(self.bridge_dir, 'camera_info.json'),
+                    json.dumps(camera_info)
+                )
             
-            with open(os.path.join(self.bridge_dir, 'timestamp.txt'), 'w') as f:
-                f.write(str(time.time()))
+            self._atomic_write_text(
+                os.path.join(self.bridge_dir, 'timestamp.txt'),
+                str(time.time())
+            )
                 
         except Exception as e:
             self.get_logger().warning(f"Failed to save stereo files: {e}")
@@ -419,13 +424,45 @@ class ROSBridge(Node):
             else:
                 img_bgr = img
             
-            cv2.imwrite(os.path.join(self.bridge_dir, 'rgb.png'), img_bgr)
-            
-            with open(os.path.join(self.bridge_dir, 'rgb_timestamp.txt'), 'w') as f:
-                f.write(str(time.time()))
+            self._atomic_imwrite(os.path.join(self.bridge_dir, 'rgb.png'), img_bgr)
+            self._atomic_write_text(
+                os.path.join(self.bridge_dir, 'rgb_timestamp.txt'),
+                str(time.time())
+            )
                 
         except Exception as e:
             self.get_logger().warning(f"Failed to save RGB file: {e}")
+
+    def _atomic_imwrite(self, path: str, image: np.ndarray):
+        """Write an image atomically to avoid readers seeing partial PNGs."""
+        directory = os.path.dirname(path)
+        fd, tmp_path = tempfile.mkstemp(dir=directory, prefix='.tmp_', suffix=os.path.splitext(path)[1])
+        os.close(fd)
+        try:
+            if not cv2.imwrite(tmp_path, image):
+                raise RuntimeError(f"cv2.imwrite failed for {path}")
+            os.replace(tmp_path, path)
+        finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
+
+    def _atomic_write_text(self, path: str, content: str):
+        """Write text atomically to avoid readers seeing partial metadata files."""
+        directory = os.path.dirname(path)
+        fd, tmp_path = tempfile.mkstemp(dir=directory, prefix='.tmp_', suffix='.txt')
+        try:
+            with os.fdopen(fd, 'w') as f:
+                f.write(content)
+            os.replace(tmp_path, path)
+        finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except OSError:
+                    pass
     
     def _check_processed_data(self):
         """Check for processed data from perception scripts and republish to ROS."""

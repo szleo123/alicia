@@ -18,7 +18,7 @@ def generate_launch_description():
     
     marker_size_arg = DeclareLaunchArgument(
         'marker_size',
-        default_value='0.05',
+        default_value='0.046',
         description='ArUco marker size in meters'
     )
     
@@ -33,7 +33,7 @@ def generate_launch_description():
     # 若使用RealSense D405，则使用/camera/camera/color/image_rect_raw
     camera_topic_arg = DeclareLaunchArgument(
         'camera_topic',
-        default_value='/camera/camera/color/image_rect_raw',
+        default_value='/camera/camera/color/image_raw',
         description='Camera image topic'
     )
     

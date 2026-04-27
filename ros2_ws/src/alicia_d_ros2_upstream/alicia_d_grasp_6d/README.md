@@ -93,8 +93,11 @@ python d405_foundationstereo.py --visualize
 **参数**:
 - `--ckpt_dir`: 模型权重路径
 - `--scale`: 图像缩放比例
+- `--z_near`: 最小深度阈值（D405 近距离场景建议保持 `0.01`）
 - `--z_far`: 最大深度
 - `--denoise_cloud`: 启用点云去噪（默认开启）
+
+> 注意：D405 是近距离相机。如果目标离镜头非常近，而点云可视化为空，通常是最小深度阈值过大导致。当前 D405 脚本已默认使用 `--z_near 0.01`，避免沿用 FoundationStereo 通用工具中的 `0.1 m` 近裁剪阈值。
 
 
 <p align="center"><img src="../imgs/D405_FoundationStereo.png" width="500" /></p>

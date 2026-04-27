@@ -4,7 +4,8 @@
                  hw_port:=
                  hw_debug_mode:=false 
                  hw_gripper_type:=50mm 
-                 hw_default_speed_deg_s:=20.0">
+                 hw_default_speed_deg_s:=20.0
+                 hw_joint_position_offsets_rad:=0,0,0,0,0,0">
         <xacro:property name="initial_positions" value="${xacro.load_yaml(initial_positions_file)['initial_positions']}"/>
 
         <ros2_control name="${name}" type="system">
@@ -13,6 +14,7 @@
                 <param name="port">${hw_port}</param>
                 <param name="gripper_type">${hw_gripper_type}</param>
                 <param name="default_speed_deg_s">${hw_default_speed_deg_s}</param>
+                <param name="joint_position_offsets_rad">${hw_joint_position_offsets_rad}</param>
             </hardware>
             <joint name="Joint1">
                 <command_interface name="position"/>

@@ -1,0 +1,66 @@
+joint_position_offsets_rad:
+  Joint1: 0.0 
+  Joint2: 0.0
+  Joint3: -0.261799
+  Joint4: -0.0291456
+  Joint5: 0.0
+  Joint6: 0.077
+joint_origin_xyz_corrections_m:
+  Joint1:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint2:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint3:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint4:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint5:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint6:
+  - 0.0
+  - 0.0
+  - 0.0
+joint_origin_rpy_corrections_deg:
+  Joint1:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint2:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint3:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint4:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint5:
+  - 0.0
+  - 0.0
+  - 0.0
+  Joint6:
+  - 0.0
+  - 0.0
+  - 0.0
+tcp_correction:
+  xyz:
+  - 0.0
+  - 0.0
+  - -0.03
+  rpy_deg:
+  - 0.0
+  - 0.0
+  - 0.0

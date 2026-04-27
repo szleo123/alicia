@@ -1,6 +1,7 @@
 #include "alicia_d_driver/alicia_d_hardware_interface.hpp"
 
 #include <cmath>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <chrono>
@@ -8,6 +9,36 @@
 
 namespace alicia_d_driver
 {
+
+bool AliciaDHardwareInterface::parse_joint_position_offsets(const std::string & raw_offsets)
+{
+  joint_position_offsets_rad_.fill(0.0);
+  if (raw_offsets.empty()) {
+    return true;
+  }
+
+  std::string normalized = raw_offsets;
+  for (char & ch : normalized) {
+    if (ch == ';') {
+      ch = ',';
+    }
+  }
+
+  std::stringstream ss(normalized);
+  std::string item;
+  size_t index = 0;
+  while (std::getline(ss, item, ',')) {
+    if (item.empty()) {
+      continue;
+    }
+    if (index >= joint_position_offsets_rad_.size()) {
+      return false;
+    }
+    joint_position_offsets_rad_[index++] = std::stod(item);
+  }
+
+  return index == joint_position_offsets_rad_.size();
+}
 
 CallbackReturn AliciaDHardwareInterface::on_init(
   const hardware_interface::HardwareInfo & info)
@@ -29,8 +60,23 @@ CallbackReturn AliciaDHardwareInterface::on_init(
   // Speed control parameter (default 20.0 deg/s)
   default_speed_deg_s_ = info_.hardware_parameters.count("default_speed_deg_s") ? 
                          std::stod(info_.hardware_parameters["default_speed_deg_s"]) : 20.0;
+  const std::string raw_joint_offsets = info_.hardware_parameters.count("joint_position_offsets_rad") ?
+                                        info_.hardware_parameters["joint_position_offsets_rad"] : "0,0,0,0,0,0";
+  if (!parse_joint_position_offsets(raw_joint_offsets))
+  {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("AliciaDHardwareInterface"),
+      "Invalid joint_position_offsets_rad parameter: '%s'",
+      raw_joint_offsets.c_str());
+    return CallbackReturn::ERROR;
+  }
   RCLCPP_INFO(rclcpp::get_logger("AliciaDHardwareInterface"), 
               "Default speed configured: %.1f deg/s", default_speed_deg_s_);
+  RCLCPP_INFO(
+    rclcpp::get_logger("AliciaDHardwareInterface"),
+    "Joint position offsets (rad): [%.5f, %.5f, %.5f, %.5f, %.5f, %.5f]",
+    joint_position_offsets_rad_[0], joint_position_offsets_rad_[1], joint_position_offsets_rad_[2],
+    joint_position_offsets_rad_[3], joint_position_offsets_rad_[4], joint_position_offsets_rad_[5]);
 
   // Initialize state and command vectors
   hw_positions_state_.resize(info_.joints.size(), 0.0);
@@ -300,7 +346,7 @@ return_type AliciaDHardwareInterface::read(
     // Update joint positions (first 6 joints)
     for (size_t i = 0; i < 6 && i < joint_state->angles.size() && i < hw_positions_state_.size(); ++i)
     {
-      hw_positions_state_[i] = joint_state->angles[i];
+      hw_positions_state_[i] = joint_state->angles[i] + joint_position_offsets_rad_[i];
     }
     
     // Update gripper position (convert from 0-1000 to meters)
@@ -407,7 +453,7 @@ return_type AliciaDHardwareInterface::write(
   std::vector<double> joint_angles;
   for (size_t i = 0; i < 6 && i < hw_positions_command_.size(); ++i)
   {
-    joint_angles.push_back(hw_positions_command_[i]);
+    joint_angles.push_back(hw_positions_command_[i] - joint_position_offsets_rad_[i]);
   }
   
   // Extract gripper position and convert to value (0-1000)

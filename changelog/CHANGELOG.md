@@ -1,5 +1,47 @@
 # Changelog
 
+## 20260427_104154
+
+Phase 2 cleanup and record organization:
+- made the installed Alicia calibration package config the hand-eye runtime source of truth
+- moved the duplicate workspace-root hand-eye result into `calibration/hand_eye/`
+- moved loose kinematic calibration samples/results from `ros2_ws/` into `calibration/kinematic/20260417/`
+- removed the accidental duplicate `ros2_ws/src/alicia_d_calibration` config path
+- updated calibration scripts so future sample/result outputs go into timestamped `calibration/kinematic/` folders
+- updated hand-eye calibration output so it writes to the real package config and preserves a timestamped copy under `calibration/hand_eye/`
+- restored `d405.launch.py` aligned-depth default to match the documented D405 baseline
+- restored conservative MoveIt default velocity/acceleration scaling for real-arm Phase 2 work
+- added `LOCAL_CHANGES.md` to clarify that `alicia_d_ros2_upstream` is now a local project fork
+- added `docs/phase2_grasp6d_runbook.md` as the operator workflow for the D405 6D grasping stack
+
+Current interpretation:
+- Phase 2 direction remains D405-based 6D grasping
+- project records are now separated from active ROS runtime config
+- future calibration runs should no longer clutter the ROS workspace root
+
+## 20260414_111747
+
+Phase 2 direction change:
+- changed the documented Phase 2 priority from D405-based cube sorting first to D405-based `grasp_6d` first
+- updated the project Phase 2 plan so `alicia_d_grasp_6d` is now the primary milestone and `alicia_d_cube_sort` is treated as a fallback validation path
+
+Current interpretation:
+- the next major project objective is no longer structured cube sorting
+- the immediate technical blocker is now third-party environment and model setup for `GraspGen`, `FoundationStereo`, and `sam2`
+
+## 20260414_101916
+
+Phase 2A launch alignment for D405-guided cube sorting:
+- replaced the old `alicia_d_cube_sort/launch/cube_detection.launch.py` logic that rebuilt hand-eye TF inline with a simpler launch that can reuse `alicia_d_calibration/publish_hand_eye_tf.py`
+- set the cube-detection launch defaults to the current D405 topics and depth-enabled localization path
+- added `alicia_d_cube_sort/launch/phase2a_cube_sort.launch.py` as a D405-oriented wrapper for cube detection plus sorting, intended to run alongside the existing real-robot and camera launches
+- added `alicia_d_calibration` as an execution dependency of `alicia_d_cube_sort`
+- rebuilt `alicia_d_cube_sort`
+
+Current interpretation:
+- Phase 2A now has a clean launch entry point that matches the current Phase 1 baseline instead of the older duplicated calibration flow
+- the next real validation step is to run D405-based cube detection and then supervised sorting against the real workspace
+
 ## 20260414_094819
 
 Real-robot perception integration and calibration publication:

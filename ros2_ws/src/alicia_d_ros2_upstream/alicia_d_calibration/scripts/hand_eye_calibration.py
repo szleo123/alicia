@@ -901,32 +901,55 @@ class HandEyeCalibration(Node):
             }
         }
         
-        # 使用 ROS2 包路径查找源码目录
-        try:
-            # 获取包的 share 目录（install 目录）
-            package_share_dir = get_package_share_directory('alicia_d_calibration')
-            # 从 install 目录推断源码目录
-            # install/alicia_d_calibration/share/alicia_d_calibration -> src/alicia_d_calibration
-            workspace_root = os.path.abspath(os.path.join(package_share_dir, '..', '..', '..', '..'))
-            config_dir = os.path.join(workspace_root, 'src', 'alicia_d_calibration', 'config')
-        except Exception as e:
-            # 如果获取包路径失败，回退到使用脚本相对路径
-            self.get_logger().warn(f'无法获取包路径: {e}，使用脚本相对路径')
-            script_dir = os.path.dirname(__file__)
-            config_dir = os.path.join(script_dir, '..', 'config')
-        
-        output_path = os.path.join(config_dir, self.output_file)
-        
+        if os.path.isabs(self.output_file):
+            output_path = self.output_file
+            config_dir = os.path.dirname(output_path)
+        else:
+            # Prefer the local source package config so calibration survives rebuilds.
+            config_candidates = []
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            config_candidates.append(os.path.abspath(os.path.join(script_dir, '..', 'config')))
+
+            # 使用 ROS2 包路径查找源码目录
+            try:
+                # 获取包的 share 目录（install 目录）
+                package_share_dir = get_package_share_directory('alicia_d_calibration')
+                workspace_root = os.path.abspath(os.path.join(package_share_dir, '..', '..', '..', '..'))
+                config_candidates.extend([
+                    os.path.join(workspace_root, 'src', 'alicia_d_ros2_upstream', 'alicia_d_calibration', 'config'),
+                    os.path.join(workspace_root, 'src', 'alicia_d_calibration', 'config'),
+                    os.path.join(package_share_dir, 'config'),
+                ])
+            except Exception as e:
+                self.get_logger().warn(f'无法获取包路径: {e}，使用脚本相对路径')
+
+            config_dir = next(
+                (candidate for candidate in config_candidates if os.path.isdir(candidate)),
+                config_candidates[0],
+            )
+            output_path = os.path.join(config_dir, self.output_file)
+
         # 确保目录存在
         os.makedirs(config_dir, exist_ok=True)
-        
+
         with open(output_path, 'w') as f:
             yaml.dump(result, f, default_flow_style=False, allow_unicode=True)
-        
+
+        record_dir = os.path.expanduser('~/alicia/calibration/hand_eye')
+        try:
+            os.makedirs(record_dir, exist_ok=True)
+            record_stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            record_path = os.path.join(record_dir, f'd405_hand_eye_calibration_result_{record_stamp}.yaml')
+            with open(record_path, 'w') as f:
+                yaml.dump(result, f, default_flow_style=False, allow_unicode=True)
+            self.get_logger().info(f'标定记录副本已保存到: {os.path.abspath(record_path)}')
+        except Exception as e:
+            self.get_logger().warn(f'无法保存标定记录副本: {e}')
+
         # 显示绝对路径以便用户确认位置
         abs_path = os.path.abspath(output_path)
         self.get_logger().info(f'标定结果已保存到: {abs_path}')
-        
+
         # 打印结果
         self.get_logger().info('=' * 60)
         self.get_logger().info('手眼标定结果 (相机到末端执行器)')

@@ -60,9 +60,20 @@ from scipy.spatial.transform import Rotation as R
 
 # Configuration paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CALIBRATION_PATH = os.path.join(
-    SCRIPT_DIR, '..', '..', '..', 'alicia_d_calibration', 'config', 'hand_eye_calibration_result.yaml'
-)
+
+
+def _default_calibration_path() -> str:
+    candidates = [
+        os.path.join(SCRIPT_DIR, '..', '..', '..', 'alicia_d_calibration', 'config', 'hand_eye_calibration_result.yaml'),
+        os.path.join(os.path.expanduser('~'), 'alicia', 'calibration', 'hand_eye', 'd405_hand_eye_calibration_result_20260417.yaml'),
+    ]
+    for path in candidates:
+        if os.path.exists(path) and os.path.getsize(path) > 0:
+            return os.path.abspath(path)
+    return os.path.abspath(candidates[0])
+
+
+CALIBRATION_PATH = _default_calibration_path()
 
 
 class GraspExecutionNode(Node):
@@ -71,32 +82,33 @@ class GraspExecutionNode(Node):
     """
     
     # Default HOME position (joint angles in radians)
-    HOME_POSITION = [0.0, 0.8722, -0.0174, 0.0, -1.1164, 0.0]
-    
+    #HOME_POSITION = [0.0, 0.8722, -0.0174, 0.0, -1.1164, 0.0]
+    HOME_POSITION = [0.0, 0.8636, -0.296, 0.0, -0.5, 0.0]
     # Gripper configuration
-    GRIPPER_DEPTH = 0.12  # Distance from gripper base center to fingertip (m)
+    GRIPPER_DEPTH = 0.0  # Distance from gripper base center to fingertip (m)
     GRIPPER_OPEN = [0.0]  # Gripper open position
     GRIPPER_CLOSED = [0.024]  # Gripper closed position
     
     # Movement parameters
-    PRE_GRASP_DISTANCE = 0.08  # Pre-grasp approach distance (m)
+    PRE_GRASP_DISTANCE = 0.05  # Pre-grasp approach distance (m)
     LIFT_HEIGHT = 0.0  # Lift height after grasp (m)
     
-    # Frame configuration - must match what grasp_generation.py uses
-    # Point cloud and grasp poses are in the depth camera's optical frame
-    CAMERA_FRAME = 'camera_depth_optical_frame'
+    # Frame configuration - fallback only.
+    # The execution path now prefers PoseArray.header.frame_id from GraspGen.
+    CAMERA_FRAME = 'camera_link'
     BASE_FRAME = 'base_link'
     
     # Coordinate offset correction (in base frame, meters)
     # Use these to fine-tune the grasp position if there's systematic error
-    OFFSET_X = -0.0   # X offset in base frame
-    OFFSET_Y = -0.0   # Y offset in base frame
+    OFFSET_X = 0.0   # X offset in base frame
+    OFFSET_Y = 0.0   # Y offset in base frame
     OFFSET_Z = 0.0    # Z offset in base frame
     
     def __init__(self, args):
         super().__init__('grasp_execution_node_d405')
         
         self.args = args
+        self.ik_link_name = args.ik_link_name
         
         # Apply offset corrections from command line arguments
         self.OFFSET_X = args.offset_x
@@ -104,6 +116,7 @@ class GraspExecutionNode(Node):
         self.OFFSET_Z = args.offset_z
         
         self.get_logger().info(f"Offset corrections: X={self.OFFSET_X:.3f}m, Y={self.OFFSET_Y:.3f}m, Z={self.OFFSET_Z:.3f}m")
+        self.get_logger().info(f"IK link: {self.ik_link_name}")
         
         # Callback groups for async operations
         self.action_callback_group = ReentrantCallbackGroup()
@@ -123,6 +136,7 @@ class GraspExecutionNode(Node):
         self.grasp_confidences = []
         self.grasp_lock = threading.Lock()
         self.new_grasps_available = False
+        self.grasp_frame_id = self.CAMERA_FRAME
         
         # TF buffer for coordinate transformations
         self.tf_buffer = Buffer()
@@ -133,7 +147,10 @@ class GraspExecutionNode(Node):
         self.static_broadcaster = StaticTransformBroadcaster(self)
         
         # Publish hand-eye calibration as static TF
-        self._publish_hand_eye_tf()
+        if self.args.publish_hand_eye_tf:
+            self._publish_hand_eye_tf()
+        else:
+            self.get_logger().info("Hand-eye TF publisher disabled by flag; expecting camera TF from another source.")
         
         # Initialize ROS interfaces
         self._init_ros_interfaces()
@@ -154,8 +171,8 @@ class GraspExecutionNode(Node):
         """
         Publish hand-eye calibration as static TF.
         
-        This connects gripper_center -> camera_link, enabling the full TF chain:
-        camera_depth_optical_frame -> camera_link -> gripper_center -> ... -> base_link
+        This connects gripper_center -> the calibrated camera child frame,
+        typically camera_link.
         """
         if not os.path.exists(CALIBRATION_PATH):
             self.get_logger().error(f"Calibration file not found: {CALIBRATION_PATH}")
@@ -172,7 +189,7 @@ class GraspExecutionNode(Node):
             trans = transform.get('translation', {})
             rot = transform.get('rotation', {}).get('quaternion', {})
             
-            # Build calibration matrix
+            # Build calibration matrix exactly as stored in the calibration file.
             t_calib = np.array([trans.get('x', 0), trans.get('y', 0), trans.get('z', 0)])
             r_calib = R.from_quat([rot.get('x', 0), rot.get('y', 0), 
                                    rot.get('z', 0), rot.get('w', 1)])
@@ -180,24 +197,25 @@ class GraspExecutionNode(Node):
             m_calib = np.eye(4)
             m_calib[:3, :3] = r_calib.as_matrix()
             m_calib[:3, 3] = t_calib
-            
-            # Transform from optical frame to link frame (D405)
-            # The D405 camera_link to camera_depth_optical_frame is a standard optical transform
-            m_internal = np.array([
-                [ 0.0, -0.0,  1.0, 0.0],
-                [-1.0, -0.0, -0.0, 0.0],
-                [ 0.0, -1.0,  0.0, 0.0],
-                [ 0.0,  0.0,  0.0, 1.0]
-            ])
-            
-            # Final transform: T_gripper_link = T_gripper_optical * inv(T_link_optical)
-            m_final = m_calib @ np.linalg.inv(m_internal)
-            
+
+            parent_frame = hand_eye.get('frame_id', 'gripper_center')
+            child_frame = hand_eye.get('child_frame_id', 'camera_link')
+
+            # Respect the calibrated child frame. Only convert if the YAML is
+            # explicitly for an optical frame and we want to publish camera_link.
+            m_final = m_calib
+            if child_frame.endswith('_optical_frame'):
+                m_internal = np.array([
+                    [ 0.0, -0.0,  1.0, 0.0],
+                    [-1.0, -0.0, -0.0, 0.0],
+                    [ 0.0, -1.0,  0.0, 0.0],
+                    [ 0.0,  0.0,  0.0, 1.0]
+                ])
+                m_final = m_calib @ np.linalg.inv(m_internal)
+                child_frame = 'camera_link'
+
             final_t = m_final[:3, 3]
             final_q = R.from_matrix(m_final[:3, :3]).as_quat()
-            
-            parent_frame = hand_eye.get('frame_id', 'gripper_center')
-            child_frame = 'camera_link'
             
             # Create and publish static transform
             static_tf = TransformStamped()
@@ -228,12 +246,14 @@ class GraspExecutionNode(Node):
     def _check_tf_available(self) -> bool:
         """Check if TF transform is available between camera and base frames."""
         try:
+            with self.grasp_lock:
+                source_frame = self.grasp_frame_id or self.CAMERA_FRAME
             self.tf_buffer.lookup_transform(
-                self.BASE_FRAME, self.CAMERA_FRAME,
+                self.BASE_FRAME, source_frame,
                 rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=0.5))
             if not self.tf_ready:
                 self.tf_ready = True
-                self.get_logger().info(f'TF transform ready: {self.CAMERA_FRAME} -> {self.BASE_FRAME}')
+                self.get_logger().info(f'TF transform ready: {source_frame} -> {self.BASE_FRAME}')
             return True
         except Exception as e:
             if self.tf_ready:
@@ -343,8 +363,9 @@ class GraspExecutionNode(Node):
         with self.grasp_lock:
             self.grasp_poses = poses
             self.new_grasps_available = True
+            self.grasp_frame_id = msg.header.frame_id or self.CAMERA_FRAME
         
-        self.get_logger().info(f"Received {len(poses)} grasp poses")
+        self.get_logger().info(f"Received {len(poses)} grasp poses in frame {self.grasp_frame_id}")
     
     def _grasp_confidences_callback(self, msg: Float32MultiArray):
         """Store grasp confidences."""
@@ -354,13 +375,15 @@ class GraspExecutionNode(Node):
     def transform_grasp_to_base(self, grasp_cam: np.ndarray) -> np.ndarray:
         """Transform grasp pose from camera optical frame to robot base frame using TF2."""
         try:
+            with self.grasp_lock:
+                source_frame = self.grasp_frame_id or self.CAMERA_FRAME
             transform = self.tf_buffer.lookup_transform(
-                self.BASE_FRAME, self.CAMERA_FRAME,
+                self.BASE_FRAME, source_frame,
                 rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=1.0))
             
             if not self.tf_ready:
                 self.tf_ready = True
-                self.get_logger().info(f'TF transform ready: {self.CAMERA_FRAME} -> {self.BASE_FRAME}')
+                self.get_logger().info(f'TF transform ready: {source_frame} -> {self.BASE_FRAME}')
             
             t = transform.transform.translation
             r = transform.transform.rotation
@@ -404,7 +427,7 @@ class GraspExecutionNode(Node):
             if z < self.args.min_z:
                 continue
             
-            if approach_z > 0:
+            if approach_z > self.args.max_approach_z:
                 continue
             
             valid_grasps.append((i, grasp, conf))
@@ -427,7 +450,7 @@ class GraspExecutionNode(Node):
         request.ik_request.avoid_collisions = False
         request.ik_request.timeout.sec = int(timeout_sec)
         request.ik_request.timeout.nanosec = int((timeout_sec % 1) * 1e9)
-        request.ik_request.ik_link_name = "gripper_center"
+        request.ik_request.ik_link_name = self.ik_link_name
         
         with self.joint_state_lock:
             if self.current_joint_state is not None:
@@ -849,7 +872,11 @@ class GraspExecutionNode(Node):
                 topdown_score = -approach_dir[2]
                 pos = grasp[:3, 3]
                 pos_dist = np.linalg.norm(pos - np.array([0.3, 0, 0.3]))
-                return topdown_score * 0.5 + conf * 1.0 - pos_dist * 0.1
+                return (
+                    topdown_score * self.args.topdown_weight +
+                    conf * self.args.confidence_weight -
+                    pos_dist * self.args.position_distance_weight
+                )
             
             valid_grasps.sort(key=compute_presort_score, reverse=True)
             
@@ -866,7 +893,11 @@ class GraspExecutionNode(Node):
                     joint_dist = self.compute_joint_distance(joints)
                     approach_dir = grasp[:3, 2]
                     topdown = -approach_dir[2]
-                    combined_score = topdown * 0.3 + conf * 1.0 - joint_dist * 0.1
+                    combined_score = (
+                        topdown * self.args.topdown_weight +
+                        conf * self.args.confidence_weight -
+                        joint_dist * self.args.joint_distance_weight
+                    )
                     self.ik_solutions.append((orig_idx, grasp, conf, joints, combined_score))
                     
                     self.get_logger().info(f"Found IK solution (grasp #{len(self.ik_solutions)})")
@@ -919,6 +950,7 @@ class GraspExecutionNode(Node):
                 print(f"Position: x={pos[0]:.3f}, y={pos[1]:.3f}, z={pos[2]:.3f}")
                 print(f"Approach: [{approach_dir[0]:.2f}, {approach_dir[1]:.2f}, {approach_dir[2]:.2f}]")
                 print(f"Confidence: {conf:.3f}")
+                print(f"Top-downness: {-approach_dir[2]:.3f}")
                 print(f"Joint angles: {[f'{j:.2f}' for j in joints]}")
                 print("=" * 50)
                 
@@ -997,7 +1029,11 @@ class GraspExecutionNode(Node):
             topdown_score = -approach_dir[2]
             pos = grasp[:3, 3]
             pos_dist = np.linalg.norm(pos - np.array([0.3, 0, 0.3]))
-            return topdown_score * 0.5 + conf * 1.0 - pos_dist * 0.1
+            return (
+                topdown_score * self.args.topdown_weight +
+                conf * self.args.confidence_weight -
+                pos_dist * self.args.position_distance_weight
+            )
         
         grasps_base.sort(key=compute_presort_score, reverse=True)
         
@@ -1006,7 +1042,7 @@ class GraspExecutionNode(Node):
             if grasp[2, 3] < z_min:
                 continue
             approach_dir = grasp[:3, 2]
-            if approach_dir[2] > 0.3:
+            if approach_dir[2] > self.args.max_approach_z:
                 continue
             
             position = grasp[:3, 3]
@@ -1017,7 +1053,11 @@ class GraspExecutionNode(Node):
             if joints is not None:
                 joint_dist = self.compute_joint_distance(joints)
                 topdown = -approach_dir[2]
-                combined_score = topdown * 0.3 + conf * 1.0 - joint_dist * 0.1
+                combined_score = (
+                    topdown * self.args.topdown_weight +
+                    conf * self.args.confidence_weight -
+                    joint_dist * self.args.joint_distance_weight
+                )
                 self.ik_solutions.append((orig_idx, grasp, conf, joints, combined_score))
                 return True
         
@@ -1028,12 +1068,30 @@ def main():
     parser = argparse.ArgumentParser(description='Grasp Execution Node (D405)')
     parser.add_argument('--min_z', type=float, default=0.0,
                        help='Minimum Z height for valid grasps (m)')
-    parser.add_argument('--offset_x', type=float, default=-0.0,
+    parser.add_argument('--max_approach_z', type=float, default=-0.4,
+                       help='Maximum allowed approach z-component. Lower values prefer more top-down grasps. '
+                            'Example: -0.4 rejects grasps flatter than about 66 degrees from vertical.')
+    parser.add_argument('--offset_x', type=float, default=0.0,
                        help='X offset correction in base frame (m)')
-    parser.add_argument('--offset_y', type=float, default=-0.0,
+    parser.add_argument('--offset_y', type=float, default=0.0,
                        help='Y offset correction in base frame (m)')
     parser.add_argument('--offset_z', type=float, default=0.0,
                        help='Z offset correction in base frame (m)')
+    parser.add_argument('--topdown_weight', type=float, default=1.0,
+                       help='Weight for favoring top-down grasps in ranking.')
+    parser.add_argument('--confidence_weight', type=float, default=1.0,
+                       help='Weight for raw grasp confidence in ranking.')
+    parser.add_argument('--joint_distance_weight', type=float, default=0.1,
+                       help='Penalty weight for joint-space distance in ranking.')
+    parser.add_argument('--position_distance_weight', type=float, default=0.1,
+                       help='Penalty weight for grasp position distance from nominal workspace center in pre-sort.')
+    parser.add_argument('--ik_link_name', type=str, default='tool0',
+                       choices=['tool0', 'gripper_center'],
+                       help='End-effector link used for IK and execution. Use gripper_center to temporarily revert to the older behavior.')
+    parser.add_argument('--publish_hand_eye_tf', action='store_true', default=True,
+                       help='Publish hand-eye calibration as a static TF from this node (default: enabled).')
+    parser.add_argument('--no_publish_hand_eye_tf', dest='publish_hand_eye_tf', action='store_false',
+                       help='Disable the built-in hand-eye TF publisher and rely on another TF source.')
     
     args = parser.parse_args()
     

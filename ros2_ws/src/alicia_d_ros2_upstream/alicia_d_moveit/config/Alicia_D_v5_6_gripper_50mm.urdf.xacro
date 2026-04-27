@@ -4,9 +4,27 @@
     <xacro:arg name="hw_port" default="" />
     <xacro:arg name="hw_gripper_type" default="50mm" />
     <xacro:arg name="hw_default_speed_deg_s" default="20.0" />
+    <xacro:arg name="kinematic_calibration_file" default="$(find alicia_d_moveit)/config/kinematic_calibration.yaml" />
+
+    <xacro:property name="kinematic_calibration_file_path" value="$(arg kinematic_calibration_file)" />
+    <xacro:property name="kinematic_calibration" value="${xacro.load_yaml(kinematic_calibration_file_path)}" />
+    <xacro:property name="joint_offsets" value="${kinematic_calibration['joint_position_offsets_rad']}" />
+    <xacro:property name="joint_origin_xyz_corrections" value="${kinematic_calibration['joint_origin_xyz_corrections_m']}" />
+    <xacro:property name="joint_origin_rpy_corrections" value="${kinematic_calibration['joint_origin_rpy_corrections_deg']}" />
+    <xacro:property name="tcp_correction" value="${kinematic_calibration['tcp_correction']}" />
 
     <!-- Import alicia_d_descriptions urdf file for v5_6 50mm -->
     <xacro:include filename="$(find alicia_d_descriptions)/urdf/Alicia_D_v5_6/Alicia_D_v5_6_gripper_50mm.urdf" />
+
+    <link name="tool0" />
+
+    <joint name="tool0_fixed" type="fixed">
+        <parent link="gripper_center" />
+        <child link="tool0" />
+        <origin
+            xyz="${tcp_correction['xyz'][0]} ${tcp_correction['xyz'][1]} ${tcp_correction['xyz'][2]}"
+            rpy="${tcp_correction['rpy_deg'][0] * pi / 180.0} ${tcp_correction['rpy_deg'][1] * pi / 180.0} ${tcp_correction['rpy_deg'][2] * pi / 180.0}" />
+    </joint>
 
     <!-- Import control_xacro -->
     <xacro:include filename="alicia_d_descriptions.ros2_control.xacro" />
@@ -17,7 +35,7 @@
         initial_positions_file="$(arg initial_positions_file)"
         hw_port="$(arg hw_port)"
         hw_gripper_type="$(arg hw_gripper_type)"
-        hw_default_speed_deg_s="$(arg hw_default_speed_deg_s)"/>
+        hw_default_speed_deg_s="$(arg hw_default_speed_deg_s)"
+        hw_joint_position_offsets_rad="${joint_offsets['Joint1']},${joint_offsets['Joint2']},${joint_offsets['Joint3']},${joint_offsets['Joint4']},${joint_offsets['Joint5']},${joint_offsets['Joint6']}"/>
 
 </robot>
-

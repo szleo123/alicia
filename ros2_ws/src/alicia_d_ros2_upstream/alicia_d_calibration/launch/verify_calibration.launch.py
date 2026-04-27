@@ -86,7 +86,7 @@ def _resolve_calibration_path(calibration_file: str) -> str:
         share_dir = Path(get_package_share_directory('alicia_d_calibration')).resolve()
         candidates.append(str((share_dir / 'config' / calibration_file).resolve()))
 
-        # Workspace root guesses: <root>/alicia_d_calibration/config or <root>/src/alicia_d_calibration/config
+        # Workspace root guesses for source checkouts and installed overlays.
         # share_dir looks like: <root>/install/alicia_d_calibration/share/alicia_d_calibration
         for parent in list(share_dir.parents)[:8]:
             candidates.append(str((parent / 'alicia_d_calibration' / 'config' / calibration_file).resolve()))

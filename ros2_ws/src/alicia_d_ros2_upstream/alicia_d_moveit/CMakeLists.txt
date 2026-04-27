@@ -14,6 +14,11 @@ endif()
 
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS
+  scripts/calibrate_kinematics_contact_bundle.py
+  scripts/calibrate_geometric_plane.py
+  scripts/calibrate_geometric_pivot.py
+  scripts/calibrate_joint_offsets_pivot.py
+  scripts/calibrate_tcp_pivot.py
   scripts/publish_workspace_boundaries.py
   scripts/demonstration_toggle_ui.py
   DESTINATION lib/${PROJECT_NAME}

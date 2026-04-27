@@ -215,6 +215,8 @@ def launch_setup(context, *args, **kwargs):
         workspace_boundaries_node,
     ]
 
+    nodes_to_start = [node for node in nodes_to_start if node is not None]
+
     if demonstration_ui_node is not None:
         nodes_to_start.append(demonstration_ui_node)
 

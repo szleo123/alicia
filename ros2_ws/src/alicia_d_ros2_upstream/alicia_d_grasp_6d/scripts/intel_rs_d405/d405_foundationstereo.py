@@ -612,10 +612,11 @@ class FoundationStereoNode:
         depth = K[0, 0] * self.baseline / disp
         depth[np.isinf(depth)] = 0
         depth[depth > self.args.z_far] = 0
-        depth[depth < 0.01] = 0
+        depth[depth < self.args.z_near] = 0
         
-        # Generate XYZ map
-        xyz_map = depth2xyzmap(depth, K)
+        # Generate XYZ map. FoundationStereo's shared helper defaults to a 10 cm
+        # near cutoff, which is too aggressive for the D405's close-range regime.
+        xyz_map = depth2xyzmap(depth, K, zmin=self.args.z_near)
         
         # Scale back to original resolution if needed
         if scale < 1.0:
@@ -836,6 +837,14 @@ class FoundationStereoNode:
                 # Run inference
                 logging.info("Running FoundationStereo inference...")
                 depth, xyz_map, disp = self.run_inference(left_img, right_img)
+                valid_depth_count = int((depth > 0).sum())
+                valid_xyz_count = int((xyz_map[..., 2] > 0).sum())
+                logging.info(
+                    f"  Valid depth pixels: {valid_depth_count}, valid XYZ points: {valid_xyz_count}, "
+                    f"depth range: {depth[depth > 0].min():.4f}-{depth[depth > 0].max():.4f} m"
+                    if valid_depth_count > 0 else
+                    "  No valid depth pixels after filtering"
+                )
                 
                 # Color point cloud using RGB
                 if rgb_img is not None:
@@ -913,6 +922,8 @@ def main():
                        help='Number of refinement iterations')
     parser.add_argument('--z_far', type=float, default=3.0,
                        help='Maximum depth to include in point cloud (meters)')
+    parser.add_argument('--z_near', type=float, default=0.01,
+                       help='Minimum depth to include in point cloud (meters)')
     parser.add_argument('--remove_invisible', action='store_true', default=True,
                        help='Remove non-overlapping regions between left/right views')
     parser.add_argument('--denoise_cloud', action='store_true', default=True,

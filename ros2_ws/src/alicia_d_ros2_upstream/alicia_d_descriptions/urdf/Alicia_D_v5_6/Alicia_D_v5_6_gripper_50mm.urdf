@@ -2,7 +2,7 @@
 <!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
      Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
-<robot
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
   name="Alicia_D_v5_6_gripper_50mm">
  <mujoco>
     <compiler meshdir="../../meshes/Alicia_D_v5_6/gripper_50mm/" discardvisual="false" />
@@ -101,8 +101,8 @@
     name="Joint1"
     type="revolute">
     <origin
-      xyz="0 0 0.1295"
-      rpy="0 -0.0397818431857344 0" />
+      xyz="${0.0 + joint_origin_xyz_corrections['Joint1'][0]} ${0.0 + joint_origin_xyz_corrections['Joint1'][1]} ${0.1295 + joint_origin_xyz_corrections['Joint1'][2]}"
+      rpy="${0.0 + joint_origin_rpy_corrections['Joint1'][0] * pi / 180.0} ${-0.0397818431857344 + joint_origin_rpy_corrections['Joint1'][1] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint1'][2] * pi / 180.0}" />
     <parent
       link="base_link" />
     <child
@@ -159,8 +159,8 @@
     name="Joint2"
     type="revolute">
     <origin
-      xyz="0.00170499781414124 0 0.0428360815487805"
-      rpy="1.5707963267949 -1.5707963267949 0" />
+      xyz="${0.00170499781414124 + joint_origin_xyz_corrections['Joint2'][0]} ${0.0 + joint_origin_xyz_corrections['Joint2'][1]} ${0.0428360815487805 + joint_origin_xyz_corrections['Joint2'][2]}"
+      rpy="${1.5707963267949 + joint_origin_rpy_corrections['Joint2'][0] * pi / 180.0} ${-1.5707963267949 + joint_origin_rpy_corrections['Joint2'][1] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint2'][2] * pi / 180.0}" />
     <parent
       link="Link1" />
     <child
@@ -217,8 +217,8 @@
     name="Joint3"
     type="revolute">
     <origin
-      xyz="0.223671302741224 0.0226916129580064 -4.99999999962493E-05"
-      rpy="0 0 -2.35619449019234" />
+      xyz="${0.223671302741224 + joint_origin_xyz_corrections['Joint3'][0]} ${0.0226916129580064 + joint_origin_xyz_corrections['Joint3'][1]} ${-4.99999999962493E-05 + joint_origin_xyz_corrections['Joint3'][2]}"
+      rpy="${0.0 + joint_origin_rpy_corrections['Joint3'][0] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint3'][1] * pi / 180.0} ${-2.35619449019234 + joint_origin_rpy_corrections['Joint3'][2] * pi / 180.0}" />
     <parent
       link="Link2" />
     <child
@@ -275,8 +275,8 @@
     name="Joint4"
     type="revolute">
     <origin
-      xyz="0.00211000000000178 -0.0990000000000033 -0.0002000000000025"
-      rpy="1.5707963267949 0 0" />
+      xyz="${0.00211000000000178 + joint_origin_xyz_corrections['Joint4'][0]} ${-0.0990000000000033 + joint_origin_xyz_corrections['Joint4'][1]} ${-0.0002000000000025 + joint_origin_xyz_corrections['Joint4'][2]}"
+      rpy="${1.5707963267949 + joint_origin_rpy_corrections['Joint4'][0] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint4'][1] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint4'][2] * pi / 180.0}" />
     <parent
       link="Link3" />
     <child
@@ -333,8 +333,8 @@
     name="Joint5"
     type="revolute">
     <origin
-      xyz="0 -0.000500000000001193 0.12235"
-      rpy="1.5707963267949 0 0" />
+      xyz="${0.0 + joint_origin_xyz_corrections['Joint5'][0]} ${-0.000500000000001193 + joint_origin_xyz_corrections['Joint5'][1]} ${0.12235 + joint_origin_xyz_corrections['Joint5'][2]}"
+      rpy="${1.5707963267949 + joint_origin_rpy_corrections['Joint5'][0] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint5'][1] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint5'][2] * pi / 180.0}" />
     <parent
       link="Link4" />
     <child
@@ -391,8 +391,8 @@
     name="Joint6"
     type="revolute">
     <origin
-      xyz="-0.00384999999999935 0.0574999999999998 -0.00100000000000219"
-      rpy="-1.5707963267949 0 0" />
+      xyz="${-0.00384999999999935 + joint_origin_xyz_corrections['Joint6'][0]} ${0.0574999999999998 + joint_origin_xyz_corrections['Joint6'][1]} ${-0.00100000000000219 + joint_origin_xyz_corrections['Joint6'][2]}"
+      rpy="${-1.5707963267949 + joint_origin_rpy_corrections['Joint6'][0] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint6'][1] * pi / 180.0} ${0.0 + joint_origin_rpy_corrections['Joint6'][2] * pi / 180.0}" />
     <parent
       link="Link5" />
     <child

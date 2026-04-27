@@ -1,9 +1,26 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="Alicia_D_v5_6_gripper_50mm">
     <xacro:arg name="initial_positions_file" default="initial_positions.yaml" />
+    <xacro:arg name="kinematic_calibration_file" default="$(find alicia_d_moveit)/config/kinematic_calibration.yaml" />
+
+    <xacro:property name="kinematic_calibration_file_path" value="$(arg kinematic_calibration_file)" />
+    <xacro:property name="kinematic_calibration" value="${xacro.load_yaml(kinematic_calibration_file_path)}" />
+    <xacro:property name="joint_origin_xyz_corrections" value="${kinematic_calibration['joint_origin_xyz_corrections_m']}" />
+    <xacro:property name="joint_origin_rpy_corrections" value="${kinematic_calibration['joint_origin_rpy_corrections_deg']}" />
+    <xacro:property name="tcp_correction" value="${kinematic_calibration['tcp_correction']}" />
 
     <!-- Import alicia_d_descriptions urdf file for v5_6 50mm -->
     <xacro:include filename="$(find alicia_d_descriptions)/urdf/Alicia_D_v5_6/Alicia_D_v5_6_gripper_50mm.urdf" />
+
+    <link name="tool0" />
+
+    <joint name="tool0_fixed" type="fixed">
+        <parent link="gripper_center" />
+        <child link="tool0" />
+        <origin
+            xyz="${tcp_correction['xyz'][0]} ${tcp_correction['xyz'][1]} ${tcp_correction['xyz'][2]}"
+            rpy="${tcp_correction['rpy_deg'][0] * pi / 180.0} ${tcp_correction['rpy_deg'][1] * pi / 180.0} ${tcp_correction['rpy_deg'][2] * pi / 180.0}" />
+    </joint>
 
     <!-- Import fake control_xacro for demo mode -->
     <xacro:include filename="alicia_d_descriptions.ros2_control.fake.xacro" />
@@ -14,4 +31,3 @@
         initial_positions_file="$(arg initial_positions_file)"/>
 
 </robot>
-

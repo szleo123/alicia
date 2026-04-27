@@ -1,0 +1,107 @@
+success: true
+message: '`gtol` termination condition is satisfied.'
+point_rmse: 0.030438503813697816
+point_mean_error: 0.02540089403624377
+point_max_error: 0.06253583556010375
+plane_rmse: 0.06025945654050481
+plane_mean_error: 0.020734890081506197
+plane_max_error: 0.26641105721601543
+pivot_point_xyz:
+- -0.3459968379909365
+- -0.0010956532478940979
+- 0.2338250839169328
+plane_roll_deg: 0.0005644555813838502
+plane_pitch_deg: 0.004520625100812371
+plane_offset_m: -0.06504509322623918
+plane_normal:
+- 7.889979217178683e-05
+- -9.85160837624764e-06
+- 0.9999999968388843
+fit_params:
+  tcp.x: 0.008105409341606752
+  tcp.y: 0.010049734647153363
+  tcp.z: -0.022135758455235605
+  joint_offset.Joint1: -5.934569777397111e-08
+  joint_offset.Joint2: -6.958985814918723e-06
+  joint_offset.Joint3: -7.023912347266004e-06
+  joint_offset.Joint4: 2.659973878683246e-06
+  joint_offset.Joint5: -6.462786514208976e-06
+  joint_offset.Joint6: 3.23815772051891e-08
+  joint_xyz.Joint1.z: -5.690753841367041e-17
+  joint_xyz.Joint2.x: 3.400622365512471e-07
+  joint_xyz.Joint2.z: 1.3534664053576926e-08
+  joint_xyz.Joint3.x: 3.624480976181919e-07
+  joint_xyz.Joint3.y: -2.974904480251682e-07
+  joint_xyz.Joint4.y: 7.716004405033981e-07
+  joint_xyz.Joint5.z: -7.716003149053359e-07
+  joint_xyz.Joint6.y: -6.392240668767316e-07
+  joint_xyz.Joint6.z: 6.542807992777651e-08
+  joint_rpy.Joint1.y: -0.000418839640503479
+  joint_rpy.Joint2.x: -1.991027029479598e-06
+  joint_rpy.Joint3.z: 0.0004024405446579932
+  joint_rpy.Joint4.x: -7.651567210373623e-05
+  joint_rpy.Joint5.x: -9.342878227235891e-05
+  joint_rpy.Joint6.x: 2.8732846215872912e-05
+updated_calibration:
+  tcp_correction:
+    xyz:
+    - 0.008105409341606752
+    - 0.010049734647153363
+    - -0.022135758455235605
+  joint_position_offsets_rad:
+    Joint1: -5.934569777397111e-08
+    Joint2: -6.958985814918723e-06
+    Joint3: -7.023912347266004e-06
+    Joint4: 2.659973878683246e-06
+    Joint5: -6.462786514208976e-06
+    Joint6: 3.23815772051891e-08
+  joint_origin_xyz_corrections_m:
+    Joint1:
+    - 0.0
+    - 0.0
+    - -5.690753841367041e-17
+    Joint2:
+    - 3.400622365512471e-07
+    - 0.0
+    - 1.3534664053576926e-08
+    Joint3:
+    - 3.624480976181919e-07
+    - -2.974904480251682e-07
+    - 0.0
+    Joint4:
+    - 0.0
+    - 7.716004405033981e-07
+    - 0.0
+    Joint5:
+    - 0.0
+    - 0.0
+    - -7.716003149053359e-07
+    Joint6:
+    - 0.0
+    - -6.392240668767316e-07
+    - 6.542807992777651e-08
+  joint_origin_rpy_corrections_deg:
+    Joint1:
+    - 0.0
+    - -0.000418839640503479
+    - 0.0
+    Joint2:
+    - -1.991027029479598e-06
+    - 0.0
+    - 0.0
+    Joint3:
+    - 0.0
+    - 0.0
+    - 0.0004024405446579932
+    Joint4:
+    - -7.651567210373623e-05
+    - 0.0
+    - 0.0
+    Joint5:
+    - -9.342878227235891e-05
+    - 0.0
+    - 0.0
+    Joint6:
+    - 2.8732846215872912e-05
+    - 0.0
+    - 0.0

@@ -10,7 +10,7 @@
     <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
     <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
     <group name="Alicia">
-        <chain base_link="base_link" tip_link="gripper_center"/>
+        <chain base_link="base_link" tip_link="tool0"/>
     </group>
     <group name="Gripper">
         <joint name="Gripper"/>
@@ -57,8 +57,11 @@
     <disable_collisions link1="Link6" link2="left_gripper" reason="Adjacent"/>
     <disable_collisions link1="Link6" link2="right_gripper" reason="Adjacent"/>
     <disable_collisions link1="Link6" link2="gripper_center" reason="Adjacent"/>
+    <disable_collisions link1="Link6" link2="tool0" reason="Adjacent"/>
     <disable_collisions link1="left_gripper" link2="right_gripper" reason="Never"/>
     <disable_collisions link1="left_gripper" link2="gripper_center" reason="Never"/>
+    <disable_collisions link1="left_gripper" link2="tool0" reason="Never"/>
     <disable_collisions link1="right_gripper" link2="gripper_center" reason="Never"/>
+    <disable_collisions link1="right_gripper" link2="tool0" reason="Never"/>
+    <disable_collisions link1="gripper_center" link2="tool0" reason="Adjacent"/>
 </robot>
-

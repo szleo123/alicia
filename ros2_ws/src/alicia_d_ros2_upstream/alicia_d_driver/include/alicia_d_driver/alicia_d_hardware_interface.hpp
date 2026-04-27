@@ -2,6 +2,7 @@
 #define ALICIA_D_DRIVER__ALICIA_D_HARDWARE_INTERFACE_HPP_
 
 #include <memory>
+#include <array>
 #include <string>
 #include <thread>
 #include <vector>
@@ -66,6 +67,7 @@ private:
   
   // Speed control
   double default_speed_deg_s_;  // Default speed in deg/s (default: 20.0 deg/s)
+  std::array<double, 6> joint_position_offsets_rad_{};
   
   // Command rate limiting (disabled for real-time control)
   rclcpp::Time last_write_time_;
@@ -91,6 +93,7 @@ private:
   void start_command_bridge();
   void stop_command_bridge();
   void demonstration_mode_callback(const std_msgs::msg::Bool::SharedPtr msg);
+  bool parse_joint_position_offsets(const std::string & raw_offsets);
 };
 
 }  // namespace alicia_d_driver

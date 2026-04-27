@@ -70,6 +70,18 @@ from utils.camera_utils import (
 from utils.transform_utils import load_hand_eye_calibration, transform_pose_to_base
 
 
+def _default_calibration_file() -> str:
+    """Return the first non-empty hand-eye calibration file we can find."""
+    candidates = [
+        os.path.join(SCRIPT_DIR, '..', '..', '..', 'alicia_d_calibration', 'config', 'hand_eye_calibration_result.yaml'),
+        os.path.join(os.path.expanduser('~'), 'alicia', 'calibration', 'hand_eye', 'd405_hand_eye_calibration_result_20260417.yaml'),
+    ]
+    for path in candidates:
+        if os.path.exists(path) and os.path.getsize(path) > 0:
+            return os.path.abspath(path)
+    return os.path.abspath(candidates[0])
+
+
 class GraspGenerationNode:
     """
     ROS 2 Node for GraspGen grasp pose generation (Intel RealSense D405).
@@ -688,9 +700,9 @@ class GraspGenerationNode:
         """
         Visualize COLORED point cloud and grasps in meshcat.
         
-        KEY FEATURE: 
+        KEY FEATURE:
         - Uses RGB colors from the point cloud
-        - Transforms to base frame before centering (if hand-eye calibration available)
+        - Can visualize in camera frame or base frame
         """
         if self.vis is None:
             return
@@ -699,31 +711,36 @@ class GraspGenerationNode:
             # Clear previous visualization
             self.vis.delete()
             
-            # Get camera-to-base transform
-            T_base_to_cam = self._get_camera_to_base_transform()
-            
-            if T_base_to_cam is not None:
-                # Transform point cloud from camera frame to base frame
-                N = len(object_points)
-                points_homo = np.hstack([object_points, np.ones((N, 1))])  # (N, 4)
-                points_base = (T_base_to_cam @ points_homo.T).T[:, :3]  # (N, 3)
-                
-                # Transform grasps from camera frame to base frame
-                grasps_base = np.array([T_base_to_cam @ g for g in grasps])
-                
-                logging.info("Transformed point cloud and grasps to base frame")
-            else:
-                # Fallback: use camera frame directly
-                points_base = object_points
-                grasps_base = grasps
-                logging.warning("Using camera frame (base transform not available)")
-            
-            # Center point cloud for visualization (now in base frame)
-            pc_center = points_base.mean(axis=0)
-            pc_centered = points_base - pc_center
-            
+            vis_frame = self.args.meshcat_frame
+            points_vis = object_points
+            grasps_vis = grasps
+
+            if vis_frame == 'base':
+                T_base_to_cam = self._get_camera_to_base_transform()
+                if T_base_to_cam is not None:
+                    # Transform point cloud from camera frame to base frame
+                    n_points = len(object_points)
+                    points_homo = np.hstack([object_points, np.ones((n_points, 1))])
+                    points_vis = (T_base_to_cam @ points_homo.T).T[:, :3]
+
+                    # Transform grasps from camera frame to base frame
+                    grasps_vis = np.array([T_base_to_cam @ g for g in grasps])
+                    logging.info("Visualizing point cloud and grasps in base frame")
+                else:
+                    logging.warning("Base transform unavailable; falling back to camera frame for meshcat")
+                    vis_frame = 'camera'
+
+            if vis_frame == 'camera':
+                points_vis = object_points
+                grasps_vis = grasps
+                logging.info("Visualizing point cloud and grasps in camera frame")
+
+            # Center point cloud for visualization
+            pc_center = points_vis.mean(axis=0)
+            pc_centered = points_vis - pc_center
+
             # Shift grasps accordingly
-            grasps_centered = grasps_base.copy()
+            grasps_centered = grasps_vis.copy()
             grasps_centered[:, :3, 3] -= pc_center
             
             # Ensure colors are valid - must have same length as points
@@ -768,7 +785,7 @@ class GraspGenerationNode:
                     linewidth=0.6
                 )
             
-            logging.debug(f"Visualized {len(grasps)} grasps with COLORED point cloud in meshcat")
+            logging.debug(f"Visualized {len(grasps)} grasps with COLORED point cloud in meshcat ({vis_frame} frame)")
             
             # 保存可视化数据，用于后续高亮更新
             # 注意：必须在绘制完成后再保存，确保数据与可视化一致
@@ -1072,9 +1089,12 @@ def main():
     parser.add_argument('--mask_dilation', type=int, default=0,
                        help='Dilation kernel size for mask (0 to disable). '
                             'Use small values (3-5) if some edge points are missed.')
+    parser.add_argument('--meshcat_frame', type=str, default='base',
+                       choices=['base', 'camera'],
+                       help='Frame used for meshcat visualization only. '
+                            '`base` helps judge robot-frame execution, `camera` helps judge raw grasp generation.')
     parser.add_argument('--calibration_file', type=str,
-                       default=os.path.join(SCRIPT_DIR, '..', '..', '..', 'alicia_d_calibration',
-                                           'config', 'hand_eye_calibration_result.yaml'),
+                       default=_default_calibration_file(),
                        help='Path to hand-eye calibration YAML file')
     
     args = parser.parse_args()
@@ -1089,7 +1109,7 @@ def main():
     logging.info(f"Grasp threshold: {args.grasp_threshold}")
     logging.info(f"Num grasps: {args.num_grasps}, Top-K: {args.topk_num_grasps}")
     logging.info(f"Calibration file: {args.calibration_file}")
-    logging.info("FEATURE: Colored point cloud visualization in BASE frame")
+    logging.info(f"Meshcat visualization frame: {args.meshcat_frame}")
     logging.info("=" * 60)
     
     node = GraspGenerationNode(args)

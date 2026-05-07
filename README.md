@@ -14,6 +14,7 @@ Current references:
 - [AGENT.md](/home/li/alicia/AGENT.md) for project rules and operating expectations
 - [docs/phase1_bringup.md](/home/li/alicia/docs/phase1_bringup.md) for the current bring-up path and known blockers
 - [docs/phase2_grasp6d_runbook.md](/home/li/alicia/docs/phase2_grasp6d_runbook.md) for the Phase 2 D405-based 6D grasping workflow
+- [docs/geomagic_touch_teleop.md](/home/li/alicia/docs/geomagic_touch_teleop.md) for Geomagic Touch live-manual teleoperation notes
 - [vendor/README.md](/home/li/alicia/vendor/README.md) for mirrored upstream source provenance
 - [changelog/CHANGELOG.md](/home/li/alicia/changelog/CHANGELOG.md) for recorded environment and dependency changes
 

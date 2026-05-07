@@ -9,7 +9,8 @@ def get_versioned_moveit_config(
     port='',
     use_fake_hardware=False,
     speed_deg_s=20,
-    default_planning_pipeline='ompl'
+    default_planning_pipeline='ompl',
+    initial_positions_file='initial_positions.yaml',
 ):
     """
     Build MoveIt configuration for specified robot version and gripper type.
@@ -20,6 +21,7 @@ def get_versioned_moveit_config(
         use_fake_hardware: Whether to use fake hardware interface
         speed_deg_s: Default speed in degrees per second (converted to radians internally)
         default_planning_pipeline: Default MoveIt planning pipeline to use
+        initial_positions_file: ros2_control fake-system initial positions YAML
     
     Returns:
         MoveItConfigs object
@@ -51,6 +53,7 @@ def get_versioned_moveit_config(
         'hw_port': port if port else '',  # Empty string for auto-detection
         'hw_gripper_type': gripper_type,  # Can be "auto", "50mm", or "100mm"
         'hw_default_speed_deg_s': str(speed_deg_s),
+        'initial_positions_file': initial_positions_file,
     }
     
     moveit_config = (

@@ -24,6 +24,14 @@
         <joint name="Joint5" value="0"/>
         <joint name="Joint6" value="0"/>
     </group_state>
+    <group_state name="teleop_ready" group="Alicia">
+        <joint name="Joint1" value="0"/>
+        <joint name="Joint2" value="0"/>
+        <joint name="Joint3" value="0"/>
+        <joint name="Joint4" value="0"/>
+        <joint name="Joint5" value="1.0"/>
+        <joint name="Joint6" value="0"/>
+    </group_state>
     <group_state name="open" group="Gripper">
         <joint name="Gripper" value="0"/>
     </group_state>

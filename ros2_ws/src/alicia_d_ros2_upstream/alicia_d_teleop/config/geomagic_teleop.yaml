@@ -1,0 +1,84 @@
+geomagic_cartesian_teleop:
+  ros__parameters:
+    input_pose_topic: /geomagic_touch/pose
+    input_buttons_topic: /geomagic_touch/buttons
+    output_twist_topic: /alicia_d_teleop/raw_twist_cmd
+    status_topic: /alicia_d_teleop/status
+    gripper_command_topic: /alicia_d_teleop/gripper_command
+    command_frame: base_link
+    publish_rate_hz: 50.0
+    input_timeout_s: 0.25
+    deadman_button_index: 0
+    gripper_button_index: 1
+    gripper_enabled: false
+    gripper_open_position: 0.0
+    gripper_closed_position: 0.03
+    gripper_start_open: true
+    ee_frame_name: tool0
+    translation_gain: 1.5
+    translation_deadband_m: 0.004
+    rotation_gain: 4.0
+    orientation_deadband_rad: 0.05
+    max_linear_speed_m_s: 0.18
+    max_angular_speed_rad_s: 0.60
+    low_pass_alpha: 0.7
+    orientation_enabled: false
+    angular_control_mode: orientation_follow
+    robot_axes_from_device: ["y", "-x", "z"]
+    robot_angular_axes_from_device: ["y", "-x", "z"]
+    zero_on_release: true
+
+teleop_safety_filter:
+  ros__parameters:
+    input_twist_topic: /alicia_d_teleop/raw_twist_cmd
+    output_twist_topic: /alicia_d_teleop/twist_cmd
+    input_buttons_topic: /geomagic_touch/buttons
+    mode_command_topic: /alicia_d_teleop/mode_command
+    status_topic: /alicia_d_teleop/safety_status
+    command_frame: base_link
+    ee_frame_name: tool0
+    publish_rate_hz: 50.0
+    input_timeout_s: 0.25
+    button_timeout_s: 0.25
+    deadman_button_index: 0
+    default_mode: jog
+    require_deadman: true
+    require_tool_tf: false
+    low_pass_alpha: 0.45
+    max_linear_accel_m_s2: 0.08
+    max_angular_accel_rad_s2: 1.20
+    workspace_min: [-10.0, -10.0, -10.0]
+    workspace_max: [10.0, 10.0, 10.0]
+    retreat_twist_linear: [-0.03, 0.0, 0.03]
+    retreat_twist_angular: [0.0, 0.0, 0.0]
+    jog_max_linear_m_s: 0.05
+    jog_max_angular_rad_s: 0.50
+    approach_max_linear_m_s: 0.015
+    approach_max_angular_rad_s: 0.15
+    grip_max_linear_m_s: 0.0
+    grip_max_angular_rad_s: 0.0
+    retreat_max_linear_m_s: 0.03
+    retreat_max_angular_rad_s: 0.15
+
+geomagic_omni_state_adapter:
+  ros__parameters:
+    omni_state_topic: /phantom/state
+    output_pose_topic: /geomagic_touch/pose
+    output_buttons_topic: /geomagic_touch/buttons
+    frame_id: geomagic_touch_base
+    pose_position_scale: 0.001
+    deadman_from_locked: true
+    gripper_from_close_gripper: true
+
+twist_preview_integrator:
+  ros__parameters:
+    input_twist_topic: /alicia_d_teleop/twist_cmd
+    output_pose_topic: /alicia_d_teleop/preview_pose
+    output_path_topic: /alicia_d_teleop/preview_path
+    parent_frame: base_link
+    child_frame: teleop_preview_tip
+    publish_tf: true
+    publish_rate_hz: 50.0
+    input_timeout_s: 0.25
+    path_max_poses: 400
+    initial_position: [0.25, 0.0, 0.25]

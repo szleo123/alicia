@@ -16,6 +16,7 @@ Current local change areas:
 - Conservative hardware synchronization and joint-position offset handling.
 - D405-oriented cube-sort fallback launch paths.
 - D405-oriented `alicia_d_grasp_6d` scripts for Phase 2 grasp generation and execution.
+- `alicia_d_teleop` preview nodes for Geomagic Touch live-manual Cartesian teleoperation.
 
 When pulling or comparing upstream changes, treat this tree as a fork and review
 local behavior before overwriting package files.

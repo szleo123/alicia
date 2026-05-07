@@ -1,5 +1,114 @@
 # Changelog
 
+## 20260506_real_teleop_deadband
+
+Real teleop neutral guard:
+- added translation and orientation deadbands to the Geomagic mapper
+- set larger real-launch deadbands so holding the Touch deadman alone should command zero
+- kept simulation/tuning deadbands smaller so axis tuning remains responsive
+
+Current interpretation:
+- real teleop should no longer turn small leader drift or Touch sag into immediate arm motion
+
+## 20260506_real_teleop_single_deadman
+
+Real teleop workflow simplification:
+- changed the real Geomagic Servo launch to start and unpause MoveIt Servo automatically by default
+- changed the trajectory gate to start armed by default in the real launch
+- kept the Touch deadman as the required live-motion permission for forwarding trajectories
+- kept `start_servo:=false` and `gate_armed_on_start:=false` as debug overrides
+
+Current interpretation:
+- real teleop now has one normal operator hold-to-move control instead of separate Servo start, unpause, gate arm, and deadman steps
+
+## 20260506_geomagic_orientation_follow
+
+Geomagic orientation-follow:
+- added an orientation-follow angular controller to the Geomagic mapper
+- kept translation commands in `base_link` while using TF `base_link -> tool0` only to compute angular orientation error
+- added `angular_control_mode: orientation_follow` with `axis_delta` still available as a simpler angular-jog fallback
+- raised the simulation orientation gain for clearer angular response while keeping real-robot angular gain lower
+- changed orientation-follow to apply leader orientation deltas around the captured `tool0` local axes instead of around base-frame axes
+- increased simulation angular speed, acceleration, and smoothing responsiveness in the teleop safety layer
+
+Current interpretation:
+- Alicia can now keep spatial translation intuitive in the world/base frame while making `tool0` orientation follow the leader's captured orientation change
+
+## 20260506_geomagic_velocity_only
+
+Geomagic teleop simplification:
+- removed the follower-style Cartesian mode and its target preview topic from the input mapper
+- removed the corresponding launch arguments and Servo-demo overrides
+- kept one normal Geomagic behavior: clutched velocity jog through the safety filter into MoveIt Servo
+
+Current interpretation:
+- Alicia teleop tuning is now centered on one motion model: deadman-held velocity commands in `base_link`
+
+## 20260506_geomagic_angular_teleop
+
+Geomagic angular teleop:
+- enabled stylus-orientation mapping in the normal tuning profile
+- added launch overrides for `orientation_enabled`, `rotation_gain`, and `max_angular_speed_rad_s`
+- added `robot_angular_axes_from_device` so angular direction can be tuned separately from the verified translation axes
+- kept real-robot angular teleop opt-in with lower default angular gain and speed caps
+- fixed boolean parameter parsing so launch values like `orientation_enabled:=false` are interpreted correctly
+
+Current interpretation:
+- translation axes are now verified, and the next tuning loop can include slow roll/pitch/yaw commands through the same deadman and safety filter
+
+## 20260506_teleop_safety_layers
+
+Layered branch-cutting teleoperation profile:
+- added `teleop_safety_filter.py` as a supervisory Cartesian command filter between input mapping and MoveIt Servo
+- split raw input `/alicia_d_teleop/raw_twist_cmd` from filtered Servo input `/alicia_d_teleop/twist_cmd`
+- added explicit `hold`, `jog`, `approach`, `grip`, and `retreat` modes through `/alicia_d_teleop/mode_command`
+- added safety-filter enforcement for deadman, command timeout, workspace limits, per-mode speed caps, acceleration limiting, and smoothing
+- wired preview, tuning, simulation Servo, and real Servo launches through the safety-filter layer
+- kept the real-robot trajectory gate so Servo trajectory output cannot directly reach `/Alicia_controller/joint_trajectory`
+
+Current interpretation:
+- Alicia teleop now defaults to normal constrained Cartesian `tool0` jog with deadman, while raw joint teleop remains avoided
+- real hardware remains dry-run/gated until deliberately armed
+
+## 20260427_123000
+
+Geomagic Touch translation tuning preview:
+- added `twist_preview_integrator.py` to integrate teleop `TwistStamped` output into a virtual end-effector pose, path, and TF frame
+- added `geomagic_tuning.launch.py` for the driver-adapter, Cartesian teleop, and preview integrator stack
+- added `geomagic_demo_tuning.launch.py` to show the teleop preview in the Alicia MoveIt demo/RViz scene
+- added `alicia_servo.yaml` and `geomagic_servo_demo.launch.py` for conservative fake-hardware MoveIt Servo testing after installing `ros-humble-moveit-servo`
+- updated the Servo demo launch to start and unpause Servo automatically after launch
+- added a Servo-specific fake-hardware initial pose to avoid starting Cartesian Servo from the all-zero singularity
+- threaded `initial_positions_file` through the Alicia MoveIt demo launch so controller-manager joint states match the Servo demo start pose
+- adjusted the simulation-only Servo start pose and singularity thresholds to reduce repeated deceleration warnings during Geomagic translation tests
+- increased the simulation teleop profile after first successful motion so RViz movement is visible enough for axis/gain tuning
+- added a separate slower real-robot Servo profile and launch that defaults to paused/manual arming
+- made real Servo launch default to dry-run output and force `/demonstration=false` before hardware arming
+- inserted a deadman/armed trajectory gate so real Servo output cannot reach `/Alicia_controller/joint_trajectory` directly
+- added a MoveIt `teleop_ready` named arm state as a non-zero starting posture for real Cartesian Servo tests
+- added preview topics `/alicia_d_teleop/preview_pose` and `/alicia_d_teleop/preview_path`
+- documented the first tuning loop for translation axes, speed cap, gain, and smoothing before enabling orientation or any robot controller
+
+Current interpretation:
+- the immediate teleop milestone is predictable manual translation in a sim-safe preview
+- angular/orientation control stays disabled until the hand motion feels natural
+- MoveIt Servo remains the likely bridge from preview to simulated robot motion, but it is not installed in this workspace yet
+
+## 20260427_112300
+
+Geomagic Touch teleoperation preview:
+- added `alicia_d_teleop` as a conservative live-manual teleoperation package
+- added `geomagic_cartesian_teleop.py` to convert clutched stylus pose input into bounded Cartesian `TwistStamped` commands
+- added `geomagic_omni_state_adapter.py` as an optional adapter for Geomagic Touch ROS 2 drivers that publish `omni_msgs/msg/OmniState`
+- added `geomagic_preview.launch.py` with preview output on `/alicia_d_teleop/twist_cmd` rather than a live robot controller
+- added `config/geomagic_teleop.yaml` for deadman, gripper, velocity, filtering, and axis-mapping parameters
+- documented the live-manual teleop workflow in `docs/geomagic_touch_teleop.md`
+
+Current interpretation:
+- the first teleop milestone is preview/simulation validation, not real-hardware motion
+- MoveIt Servo remains the preferred live-controller target, but it is not installed in this workspace yet
+- real robot teleoperation should stay gated behind deadman, conservative limits, and simulation validation
+
 ## 20260427_104154
 
 Phase 2 cleanup and record organization:

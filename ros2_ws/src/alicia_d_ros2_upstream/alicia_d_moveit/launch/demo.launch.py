@@ -16,12 +16,14 @@ def launch_setup(context, *args, **kwargs):
     """Setup demo launch with versioned config."""
     # Get launch configuration values
     gripper_type = LaunchConfiguration('gripper_type').perform(context)
+    initial_positions_file = LaunchConfiguration('initial_positions_file').perform(context)
     
     
     # Get versioned MoveIt config using fake hardware for demo
     moveit_config = get_versioned_moveit_config(
         gripper_type,
         use_fake_hardware=True,
+        initial_positions_file=initial_positions_file,
     )
     
     # Build path to demo.rviz using source directory (not install directory)
@@ -173,6 +175,11 @@ def generate_launch_description():
             'gripper_type',
             default_value='50mm',
             description='Gripper type: 50mm or 100mm'
+        ),
+        DeclareLaunchArgument(
+            'initial_positions_file',
+            default_value='initial_positions.yaml',
+            description='ros2_control fake-system initial positions YAML'
         ),
         DeclareLaunchArgument(
             'db',

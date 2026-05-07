@@ -1,0 +1,11 @@
+# Non-singular fake-hardware start pose for MoveIt Servo teleop tests.
+# This is for simulation only; do not use it as a real-robot startup command.
+
+initial_positions:
+  Joint1: 0
+  Joint2: 0
+  Joint3: 0
+  Joint4: 0.0
+  Joint5: 1.0
+  Joint6: 0
+  Gripper: 0
